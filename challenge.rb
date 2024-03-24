@@ -252,7 +252,7 @@ def print_companies(companies, sink)
 end
 
 # in general, the objects would load their dependencies as dictated by the context and framework in which they are used,
-# but for this example, we will hardcoad loading the users first and then the companies to ensure each company
+# but for this example, we will hardcode loading the users first and then the companies to ensure each company
 # has the associated users it needs
 
 puts 'Reading users...'
