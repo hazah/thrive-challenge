@@ -142,16 +142,18 @@ class Users
     })
   end
 
-  def sort_by_last_name
-    @users.sort_by { |user| user.last_name }
-  end
-
   def select
     users.select { |user| yield user }
   end
 
   def length
     users.length
+  end
+
+private
+
+  def sort_by_last_name
+    @users.sort_by { |user| user.last_name }
   end
 end
 
@@ -176,20 +178,20 @@ class Companies
       @users.find_by_company(company).length > 0
     end
 
-    extra = Proc.new do |company|
+    @companies = init_collection(Company, CompaniesInvalidDataError, CompaniesInputFileNotFoundError, filename, validation, filters) do |company|
       users = @users.find_by_company(company)
       company.merge(users: users)
     end
-
-    @companies = init_collection(Company, CompaniesInvalidDataError, CompaniesInputFileNotFoundError, filename, validation, filters, extra)
-  end
-
-  def sort_by_id
-    @companies.sort_by { |company| company.id }
   end
 
   def each
     companies.each { |company| yield company }
+  end
+
+private
+
+  def sort_by_id
+    @companies.sort_by { |company| company.id }
   end
 end
 
@@ -209,14 +211,14 @@ end
 # @param filters [Proc] A function to filter each item in the collection.
 # @param extra [Proc] An optional function to apply to each item in the collection. Defaults to a function that returns the item unchanged.
 # @return [Array] An array of instances of the given class.
-def init_collection(klass, invalid_data_error_klass, file_not_found_error_klass, filename, validation, filters, extra = ->(item) { item })
+def init_collection(klass, invalid_data_error_klass, file_not_found_error_klass, filename, validation, filters)
   begin
     data = File.read(filename)
     JSON.parse(data).map do |item|
       validation.call(item)
       
-      item_with_extra = extra.call(item)
-      klass.new(**item_with_extra) if filters.call(item_with_extra)
+      item = yield(item) if block_given?
+      klass.new(**item) if filters.call(item)
     end.compact
   rescue JSON::ParserError
     raise invalid_data_error_klass, "Invalid JSON data for #{filename} file. Please make sure the file is valid and try again."
